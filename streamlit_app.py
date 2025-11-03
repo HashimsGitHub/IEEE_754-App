@@ -175,6 +175,7 @@ def parse_hex_input(value: str) -> tuple[str, str, str]:
 
     as_int = int(v, 16)
     bits = f"{as_int:032b}"
+    hx = f"0x{as_int:08X}"  # <-- Ensure HEX is defined
     float_val = ieee_bits_to_float(bits)
 
     comps = bits_to_components(bits)
@@ -184,7 +185,7 @@ def parse_hex_input(value: str) -> tuple[str, str, str]:
     <p>Exponent bits: {comps['exponent_bits']} (biased {comps['exponent_biased']}, unbiased {comps['exponent_unbiased']})</p>
     <p>Mantissa bits: {comps['mantissa_bits']}</p>
     """
-    return bits, f"{float_val}", html
+    return bits, float_val, html
 
 # ================= Streamlit App =================
 
@@ -204,7 +205,8 @@ if st.button('Convert'):
             bits, hx, html = decimal_to_ieee_steps(input_str)
         elif input_type == 'Hexadecimal':
             bits, _, html = parse_hex_input(input_str)
-        else:  # Binary
+            hx = f"0x{int(bits, 2):08X}"  # <-- Ensure hx is defined
+        else:  # Binary input
             dec_value = parse_binary_fraction(input_str)
             bits, hx, html = decimal_to_ieee_steps(str(dec_value))
             st.markdown(f"<p>Parsed Decimal value from binary input: {dec_value}</p>", unsafe_allow_html=True)
