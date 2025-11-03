@@ -4,10 +4,9 @@ st.title("🎈 Hashim's IEEE-754 App")
 st.write(
     "This app converts between Decimal and Hexadecimal IEEE-754 32-bit floating point formats with visualized bitfields"
 )
-
 import streamlit as st
 import struct
-from decimal import Decimal, getcontext
+from decimal import Decimal, getcontext, InvalidOperation
 
 # ================= Helper Functions =================
 
@@ -72,8 +71,11 @@ def create_bitfield_html(bits: str) -> str:
 
 
 def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
-    getcontext().prec = 80
-    dec = Decimal(value_str)
+    try:
+        getcontext().prec = 80
+        dec = Decimal(value_str)
+    except InvalidOperation:
+        raise ValueError("Invalid decimal input. Please enter a valid number.")
 
     sign = 0
     if dec < 0:
@@ -101,11 +103,17 @@ def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
         mantissa_raw = int_bin[1:] + frac_bits
     else:
         first_one = frac_bits.find('1')
+        if first_one == -1:
+            raise ValueError("Invalid input: cannot normalize 0.0.")
         exponent_unbiased = -(first_one + 1)
         mantissa_raw = frac_bits[first_one + 1:]
 
     bias = 127
     exponent_biased = exponent_unbiased + bias
+
+    if not (0 <= exponent_biased <= 255):
+        raise ValueError("Value out of range for IEEE-754 single precision.")
+
     exponent_bits = f"{exponent_biased:08b}"
     mantissa = mantissa_raw[:23].ljust(23, '0')
 
@@ -130,8 +138,9 @@ def parse_hex_input(value: str) -> (str, str, str):
     v = value.strip().lower()
     if v.startswith('0x'):
         v = v[2:]
-    if len(v) != 8:
-        raise ValueError("Hex input must be exactly 8 hex digits (32 bits).")
+    if len(v) != 8 or not all(c in '0123456789abcdef' for c in v):
+        raise ValueError("Invalid HEX input. Please enter 8 hexadecimal digits (optionally prefixed with 0x).")
+
     as_int = int(v, 16)
     bits = f"{as_int:032b}"
     float_val = ieee_bits_to_float(bits)
@@ -165,7 +174,6 @@ if st.button('Convert'):
             st.markdown(html, unsafe_allow_html=True)
             st.subheader('Bitfield Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-
             st.text_area('IEEE Bits', bits, height=80)
             st.text_input('Hexadecimal Representation', hx)
 
@@ -174,12 +182,13 @@ if st.button('Convert'):
             st.markdown(html, unsafe_allow_html=True)
             st.subheader('Bitfield Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-
             st.text_area('IEEE Bits', bits, height=80)
             st.text_input('Decimal Representation', dec_value)
 
+    except ValueError as e:
+        st.error(str(e))
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Unexpected error: {e}")
 
 st.markdown('---')
-st.caption('This app converts between Decimal and Hexadecimal IEEE-754 32-bit floating point formats with visualized bitfields.')
+st.caption('This app converts between Decimal and Hexadecimal IEEE-754 32-bit floating point formats with validation and visualized bitfields.')
