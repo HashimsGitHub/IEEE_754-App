@@ -42,32 +42,24 @@ def bits_to_components(bits: str) -> dict:
 
 
 def create_bitfield_html(bits: str) -> str:
-    sign_color = '#f28b82'
-    exp_color = '#fbbc04'
-    mant_color = '#34a853'
+    # Split bits into 4 bytes for display
+    bytes_list = [bits[i:i+8] for i in range(0, 32, 8)]
+    hex_list = [f"0x{int(b,2):02X}" for b in bytes_list]
 
-    s = bits[0]
-    e = bits[1:9]
-    m = bits[9:]
-
-    style = f"""
-        <style>
-        .bitfield {{ font-family: monospace; display: flex; flex-wrap: wrap; justify-content: center; margin: 10px 0; }}
-        .bit {{ padding: 4px; margin: 1px; border-radius: 4px; color: white; font-size: 14px; text-align: center; }}
-        .sign {{ background-color: {sign_color}; }}
-        .exp {{ background-color: {exp_color}; }}
-        .mant {{ background-color: {mant_color}; }}
-        </style>
+    style = """
+    <style>
+    .bitfield { display: flex; justify-content: center; margin: 10px 0; }
+    .byte-box { border: 1px solid #555; padding: 10px; margin: 5px; text-align: center; font-family: monospace; font-size: 16px; }
+    .bits { margin-bottom: 5px; }
+    </style>
     """
 
     html = style + '<div class="bitfield">'
-    html += f'<div class="bit sign">{s}</div>'
-    html += ''.join([f'<div class="bit exp">{b}</div>' for b in e])
-    html += ''.join([f'<div class="bit mant">{b}</div>' for b in m])
+    for b, h in zip(bytes_list, hex_list):
+        html += f'<div class="byte-box"><div class="bits">{b}</div><div class="hex">{h}</div></div>'
     html += '</div>'
 
-    legend = f'<p><b>Legend:</b> <span style="color:{sign_color}">Sign</span>, <span style="color:{exp_color}">Exponent</span>, <span style="color:{mant_color}">Mantissa</span></p>'
-    return html + legend
+    return html
 
 
 def parse_binary_fraction(value: str) -> float:
@@ -190,14 +182,14 @@ with st.sidebar:
     input_type = st.radio('Choose Input Type', ['Decimal', 'Hexadecimal', 'Binary'])
 
 st.markdown('Enter a value below to view its IEEE-754 32-bit conversion steps and bitfield visualization.')
-input_str = st.text_input('Input value')
+input_str = st.text_input('Input value', value='3.1415926')
 
 if st.button('Convert'):
     try:
         if input_type == 'Decimal':
             bits, hx, html = decimal_to_ieee_steps(input_str)
             st.markdown(html, unsafe_allow_html=True)
-            st.subheader('Bitfield Visualization')
+            st.subheader('IEEE-754 Bytes Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
             st.text_area('IEEE Bits', bits, height=80)
             st.text_input('Hexadecimal Representation', hx)
@@ -205,7 +197,7 @@ if st.button('Convert'):
         elif input_type == 'Hexadecimal':
             bits, dec_value, html = parse_hex_input(input_str)
             st.markdown(html, unsafe_allow_html=True)
-            st.subheader('Bitfield Visualization')
+            st.subheader('IEEE-754 Bytes Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
             st.text_area('IEEE Bits', bits, height=80)
             st.text_input('Decimal Representation', dec_value)
@@ -215,7 +207,7 @@ if st.button('Convert'):
             bits, hx, html = decimal_to_ieee_steps(str(dec_value))
             st.markdown(f"<p>Parsed Decimal value from binary input: {dec_value}</p>", unsafe_allow_html=True)
             st.markdown(html, unsafe_allow_html=True)
-            st.subheader('Bitfield Visualization')
+            st.subheader('IEEE-754 Bytes Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
             st.text_area('IEEE Bits', bits, height=80)
             st.text_input('Hexadecimal Representation', hx)
@@ -226,4 +218,4 @@ if st.button('Convert'):
         st.error(f"Unexpected error: {e}")
 
 st.markdown('---')
-st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and visualized bitfields.')
+st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and visualized byte boxes for each 8-bit section.')
