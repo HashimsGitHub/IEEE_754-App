@@ -70,6 +70,31 @@ def create_bitfield_html(bits: str) -> str:
     return html + legend
 
 
+def parse_binary_fraction(value: str) -> float:
+    value = value.strip()
+    if not value:
+        raise ValueError("Binary input cannot be empty.")
+
+    sign = 1
+    if value.startswith('+'):
+        value = value[1:]
+    elif value.startswith('-'):
+        sign = -1
+        value = value[1:]
+
+    if '.' in value:
+        int_part_str, frac_part_str = value.split('.')
+    else:
+        int_part_str, frac_part_str = value, ''
+
+    if not all(c in '01' for c in int_part_str + frac_part_str):
+        raise ValueError("Binary input must contain only 0 and 1 digits, optionally a single dot.")
+
+    int_value = int(int_part_str, 2) if int_part_str else 0
+    frac_value = sum(int(b)*(2**-(i+1)) for i, b in enumerate(frac_part_str))
+    return sign * (int_value + frac_value)
+
+
 def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
     try:
         getcontext().prec = 80
@@ -162,7 +187,7 @@ st.title('IEEE-754 Converter — 32-bit Floating Point with Visual Bitfields')
 
 with st.sidebar:
     st.header('Input Type')
-    input_type = st.radio('Choose Input Type', ['Decimal', 'Hexadecimal'])
+    input_type = st.radio('Choose Input Type', ['Decimal', 'Hexadecimal', 'Binary'])
 
 st.markdown('Enter a value below to view its IEEE-754 32-bit conversion steps and bitfield visualization.')
 input_str = st.text_input('Input value', value='3.1415926')
@@ -177,7 +202,7 @@ if st.button('Convert'):
             st.text_area('IEEE Bits', bits, height=80)
             st.text_input('Hexadecimal Representation', hx)
 
-        else:
+        elif input_type == 'Hexadecimal':
             bits, dec_value, html = parse_hex_input(input_str)
             st.markdown(html, unsafe_allow_html=True)
             st.subheader('Bitfield Visualization')
@@ -185,10 +210,20 @@ if st.button('Convert'):
             st.text_area('IEEE Bits', bits, height=80)
             st.text_input('Decimal Representation', dec_value)
 
+        else:  # Binary input
+            dec_value = parse_binary_fraction(input_str)
+            bits, hx, html = decimal_to_ieee_steps(str(dec_value))
+            st.markdown(f"<p>Parsed Decimal value from binary input: {dec_value}</p>", unsafe_allow_html=True)
+            st.markdown(html, unsafe_allow_html=True)
+            st.subheader('Bitfield Visualization')
+            st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
+            st.text_area('IEEE Bits', bits, height=80)
+            st.text_input('Hexadecimal Representation', hx)
+
     except ValueError as e:
         st.error(str(e))
     except Exception as e:
         st.error(f"Unexpected error: {e}")
 
 st.markdown('---')
-st.caption('This app converts between Decimal and Hexadecimal IEEE-754 32-bit floating point formats with validation and visualized bitfields.')
+st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and visualized bitfields.')
