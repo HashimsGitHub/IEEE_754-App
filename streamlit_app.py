@@ -45,19 +45,24 @@ def create_bitfield_html(bits: str) -> str:
     # Split bits into 4 bytes for display
     bytes_list = [bits[i:i+8] for i in range(0, 32, 8)]
     hex_list = [f"0x{int(b,2):02X}" for b in bytes_list]
+    labels = ['Sign+Exp', 'Exp/Mant', 'Mant', 'Mant']  # approximate label for each byte
 
     style = """
     <style>
     .bitfield { display: flex; justify-content: center; margin: 10px 0; }
     .byte-box { border: 1px solid #555; padding: 10px; margin: 5px; text-align: center; font-family: monospace; font-size: 16px; }
     .bits { margin-bottom: 5px; }
+    .label { font-size:12px; color:#333; margin-bottom:3px; }
     </style>
     """
 
     html = style + '<div class="bitfield">'
-    for b, h in zip(bytes_list, hex_list):
-        html += f'<div class="byte-box"><div class="bits">{b}</div><div class="hex">{h}</div></div>'
+    for b, h, lbl in zip(bytes_list, hex_list, labels):
+        html += f'<div class="byte-box"><div class="label">{lbl}</div><div class="bits">{b}</div><div class="hex">{h}</div></div>'
     html += '</div>'
+
+    legend = '<p><b>Byte Labels:</b> Sign+Exponent (byte 0), Exponent/Mantissa (byte 1), Mantissa (bytes 2-3)</p>'
+    html += legend
 
     return html
 
@@ -218,4 +223,4 @@ if st.button('Convert'):
         st.error(f"Unexpected error: {e}")
 
 st.markdown('---')
-st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and visualized byte boxes for each 8-bit section.')
+st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and visualized byte boxes labeled for Sign, Exponent, and Mantissa.')
