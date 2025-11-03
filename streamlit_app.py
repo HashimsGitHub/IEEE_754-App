@@ -190,7 +190,7 @@ with st.sidebar:
     input_type = st.radio('Choose Input Type', ['Decimal', 'Hexadecimal', 'Binary'])
 
 st.markdown('Enter a value below to view its IEEE-754 32-bit conversion steps and bitfield visualization.')
-input_str = st.text_input('Input value', value='3.1415926')
+input_str = st.text_input('Input value')
 
 if st.button('Convert'):
     try:
