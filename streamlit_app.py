@@ -33,32 +33,51 @@ def bits_to_components(bits: str) -> dict[str, object]:
     }
 
 def create_bitfield_html(bits: str) -> str:
-    # Split 32-bit IEEE into 8 groups of 4 bits
-    bit_groups = [bits[i:i+4] for i in range(0, 32, 4)]
+    """Color-coded bitfield: Sign (red), Exponent (yellow), Mantissa (green)"""
+    sign_color = '#f28b82'
+    exp_color = '#fbbc04'
+    mant_color = '#34a853'
 
-    style = """
+    s = bits[0]
+    e = bits[1:9]
+    m = bits[9:]
+
+    style = f"""
     <style>
-    .bitfield { display: flex; flex-wrap: wrap; justify-content: center; margin: 10px 0; }
-    .bit-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; color: white; text-align: center; font-weight: bold; }
-    .sign { background-color: #f28b82; }      /* Red */
-    .exp { background-color: #fbbc04; }       /* Orange */
-    .mant { background-color: #34a853; }      /* Green */
-    .hex-label { text-align: center; margin-bottom: 15px; font-weight: bold; font-family: monospace; }
+    .bitfield {{ font-family: monospace; display: flex; flex-wrap: wrap; justify-content: center; margin: 10px 0; }}
+    .bit {{ padding: 4px; margin: 1px; border-radius: 4px; color: white; font-size: 14px; text-align: center; }}
+    .sign {{ background-color: {sign_color}; }}
+    .exp {{ background-color: {exp_color}; }}
+    .mant {{ background-color: {mant_color}; }}
     </style>
     """
 
     html = style + '<div class="bitfield">'
-    for i, group in enumerate(bit_groups):
-        start_bit = i * 4
-        if start_bit == 0:
-            cls = 'sign'  # First bit (Sign) + next 3 bits (Exponent)
-        elif start_bit < 8:
-            cls = 'exp'
-        else:
-            cls = 'mant'
-        html += f'<div class="bit-box {cls}">{group}</div>'
+    html += f'<div class="bit sign">{s}</div>'
+    html += ''.join([f'<div class="bit exp">{b}</div>' for b in e])
+    html += ''.join([f'<div class="bit mant">{b}</div>' for b in m])
     html += '</div>'
-    html += '<p class="hex-label"><b>Legend:</b> <span style="color:#f28b82;">Sign</span>, <span style="color:#fbbc04;">Exponent</span>, <span style="color:#34a853;">Mantissa</span></p>'
+    html += f'<p><b>Legend:</b> <span style="color:{sign_color}">Sign</span>, <span style="color:{exp_color}">Exponent</span>, <span style="color:{mant_color}">Mantissa</span></p>'
+
+    return html
+
+def create_final_boxes_html(bits: str, hx: str) -> str:
+    """Show final 32-bit number in 8 boxes + HEX box"""
+    bit_groups = [bits[i:i+4] for i in range(0, 32, 4)]
+    
+    style = """
+    <style>
+    .final-field { display: flex; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+    .bit-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; text-align: center; border: 1px solid #555; background-color: #1976D2; color: white; font-weight: bold; }
+    .hex-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; text-align: center; border: 1px solid #555; background-color: #4CAF50; color: white; font-weight: bold; }
+    </style>
+    """
+    html = style + '<div class="final-field">'
+    for grp in bit_groups:
+        html += f'<div class="bit-box">{grp}</div>'
+    html += '</div>'
+    # HEX box
+    html += f'<div class="final-field"><div class="hex-box">{hx}</div></div>'
     return html
 
 def parse_binary_fraction(value: str) -> float:
@@ -183,20 +202,16 @@ if st.button('Convert'):
     try:
         if input_type == 'Decimal':
             bits, hx, html = decimal_to_ieee_steps(input_str)
-            st.markdown(html, unsafe_allow_html=True)
-            st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-
         elif input_type == 'Hexadecimal':
-            bits, dec_value, html = parse_hex_input(input_str)
-            st.markdown(html, unsafe_allow_html=True)
-            st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-
-        else:  # Binary input
+            bits, _, html = parse_hex_input(input_str)
+        else:  # Binary
             dec_value = parse_binary_fraction(input_str)
             bits, hx, html = decimal_to_ieee_steps(str(dec_value))
             st.markdown(f"<p>Parsed Decimal value from binary input: {dec_value}</p>", unsafe_allow_html=True)
-            st.markdown(html, unsafe_allow_html=True)
-            st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
+
+        st.markdown(html, unsafe_allow_html=True)
+        st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
+        st.markdown(create_final_boxes_html(bits, hx), unsafe_allow_html=True)
 
     except ValueError as e:
         st.error(str(e))
@@ -204,4 +219,4 @@ if st.button('Convert'):
         st.error(f"Unexpected error: {e}")
 
 st.markdown('---')
-st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and color-coded bitfield visualization.')
+st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with color-coded bitfield and final binary/HEX display.')
