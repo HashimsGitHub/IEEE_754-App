@@ -2,7 +2,7 @@ import streamlit as st
 
 st.title("🎈 Hashim's IEEE-754 App")
 st.write(
-    "This app shows IEEE-754 floating-point conversion with step-by-step logic and color-coded bitfield visualization"
+    "This app converts between Decimal and Hexadecimal IEEE-754 32-bit floating point formats with visualized bitfields"
 )
 
 import streamlit as st
@@ -17,6 +17,12 @@ def float_to_ieee_bits(value: float) -> (str, str):
     bits = f"{as_int:032b}"
     hx = f"0x{as_int:08X}"
     return bits, hx
+
+
+def ieee_bits_to_float(bits: str) -> float:
+    as_int = int(bits, 2)
+    packed = as_int.to_bytes(4, 'big')
+    return struct.unpack('>f', packed)[0]
 
 
 def bits_to_components(bits: str) -> dict:
@@ -65,22 +71,6 @@ def create_bitfield_html(bits: str) -> str:
     return html + legend
 
 
-def decimal_to_binary_fraction(decimal_fraction: Decimal, limit_bits: int) -> (str, list):
-    steps = []
-    bits = ''
-    frac = decimal_fraction
-    for i in range(limit_bits):
-        frac *= 2
-        bit = '1' if frac >= 1 else '0'
-        if bit == '1':
-            frac -= 1
-        bits += bit
-        steps.append(f"Step {i+1}: multiply by 2 → bit={bit}, remaining fraction={frac}")
-        if frac == 0:
-            break
-    return bits, steps
-
-
 def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
     getcontext().prec = 80
     dec = Decimal(value_str)
@@ -94,9 +84,17 @@ def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
     frac_part = dec - int_part
 
     int_bin = bin(int_part)[2:] if int_part != 0 else '0'
-    mantissa_bits_count = 23
-    frac_bits_limit = mantissa_bits_count + 10
-    frac_bits, frac_steps = decimal_to_binary_fraction(frac_part, frac_bits_limit)
+
+    frac_bits = ''
+    frac = frac_part
+    for _ in range(40):
+        frac *= 2
+        bit = '1' if frac >= 1 else '0'
+        if frac >= 1:
+            frac -= 1
+        frac_bits += bit
+        if frac == 0:
+            break
 
     if int_part != 0:
         exponent_unbiased = len(int_bin) - 1
@@ -104,29 +102,28 @@ def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
     else:
         first_one = frac_bits.find('1')
         exponent_unbiased = -(first_one + 1)
-        mantissa_raw = frac_bits[first_one+1:]
+        mantissa_raw = frac_bits[first_one + 1:]
 
     bias = 127
     exponent_biased = exponent_unbiased + bias
     exponent_bits = f"{exponent_biased:08b}"
-    mantissa = mantissa_raw[:mantissa_bits_count].ljust(mantissa_bits_count, '0')
+    mantissa = mantissa_raw[:23].ljust(23, '0')
 
     bits = f"{sign:b}" + exponent_bits + mantissa
-    hx = f"0x{int(bits,2):08X}"
+    hx = f"0x{int(bits, 2):08X}"
 
-    html = [
-        f"<h3>Conversion Steps for {value_str}</h3>",
-        f"<p>Sign bit: {sign}</p>",
-        f"<p>Integer part: {int_part} (binary {int_bin})</p>",
-        f"<p>Fractional part: {frac_part} → binary {frac_bits}</p>",
-        "<ol>" + ''.join([f"<li>{s}</li>" for s in frac_steps]) + "</ol>",
-        f"<p>Exponent (unbiased): {exponent_unbiased}, Biased: {exponent_biased}</p>",
-        f"<p>Exponent bits: {exponent_bits}</p>",
-        f"<p>Mantissa bits: {mantissa}</p>",
-        f"<p>Final IEEE bits: {bits}</p>",
-        f"<p>Hex representation: {hx}</p>"
-    ]
-    return bits, hx, '\n'.join(html)
+    html = f"""
+    <h3>Conversion Steps for {value_str}</h3>
+    <p>Sign bit: {sign}</p>
+    <p>Integer part: {int_part} (binary {int_bin})</p>
+    <p>Fractional part: {frac_part} → binary {frac_bits}</p>
+    <p>Exponent (unbiased): {exponent_unbiased}, Biased: {exponent_biased}</p>
+    <p>Exponent bits: {exponent_bits}</p>
+    <p>Mantissa bits: {mantissa}</p>
+    <p>Final IEEE bits: {bits}</p>
+    <p>Hex representation: {hx}</p>
+    """
+    return bits, hx, html
 
 
 def parse_hex_input(value: str) -> (str, str, str):
@@ -137,15 +134,17 @@ def parse_hex_input(value: str) -> (str, str, str):
         raise ValueError("Hex input must be exactly 8 hex digits (32 bits).")
     as_int = int(v, 16)
     bits = f"{as_int:032b}"
-    comps = bits_to_components(bits)
+    float_val = ieee_bits_to_float(bits)
 
-    html = [
-        f"<h3>Interpretation of 0x{v.upper()}</h3>",
-        f"<p>Sign bit: {comps['sign_bit']}</p>",
-        f"<p>Exponent bits: {comps['exponent_bits']} (biased {comps['exponent_biased']}, unbiased {comps['exponent_unbiased']})</p>",
-        f"<p>Mantissa bits: {comps['mantissa_bits']}</p>"
-    ]
-    return bits, '0x'+v.upper(), '\n'.join(html)
+    comps = bits_to_components(bits)
+    html = f"""
+    <h3>Interpretation of 0x{v.upper()}</h3>
+    <p>Sign bit: {comps['sign_bit']}</p>
+    <p>Exponent bits: {comps['exponent_bits']} (biased {comps['exponent_biased']}, unbiased {comps['exponent_unbiased']})</p>
+    <p>Mantissa bits: {comps['mantissa_bits']}</p>
+    <p>Converted Decimal value: {float_val}</p>
+    """
+    return bits, f"{float_val}", html
 
 # ================= Streamlit App =================
 
@@ -163,23 +162,24 @@ if st.button('Convert'):
     try:
         if input_type == 'Decimal':
             bits, hx, html = decimal_to_ieee_steps(input_str)
+            st.markdown(html, unsafe_allow_html=True)
+            st.subheader('Bitfield Visualization')
+            st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
+
+            st.text_area('IEEE Bits', bits, height=80)
+            st.text_input('Hexadecimal Representation', hx)
+
         else:
-            bits, hx, html = parse_hex_input(input_str)
+            bits, dec_value, html = parse_hex_input(input_str)
+            st.markdown(html, unsafe_allow_html=True)
+            st.subheader('Bitfield Visualization')
+            st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
 
-        st.markdown(html, unsafe_allow_html=True)
-        st.subheader('Bitfield Visualization')
-        st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-
-        st.text_area('IEEE Bits', bits, height=80)
-        st.text_input('Hexadecimal Representation', hx)
-
-        comps = bits_to_components(bits)
-        st.markdown(f"**Sign bit:** {comps['sign_bit']}")
-        st.markdown(f"**Exponent bits:** {comps['exponent_bits']} (biased: {comps['exponent_biased']}, unbiased: {comps['exponent_unbiased']})")
-        st.markdown(f"**Mantissa bits:** {comps['mantissa_bits']}")
+            st.text_area('IEEE Bits', bits, height=80)
+            st.text_input('Decimal Representation', dec_value)
 
     except Exception as e:
         st.error(f"Error: {e}")
 
 st.markdown('---')
-st.caption('This app converts Decimal or Hexadecimal input into IEEE-754 32-bit format and visualizes the bitfields.')
+st.caption('This app converts between Decimal and Hexadecimal IEEE-754 32-bit floating point formats with visualized bitfields.')
