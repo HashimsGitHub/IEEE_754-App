@@ -33,30 +33,37 @@ def bits_to_components(bits: str) -> dict[str, object]:
     }
 
 def create_bitfield_html(bits: str) -> str:
-    # Split bits into 4 bytes for display
-    bytes_list = [bits[i:i+8] for i in range(0, 32, 8)]
-    hex_list = [f"0x{int(b,2):02X}" for b in bytes_list]
-    labels = ['Sign+Exp', 'Exp/Mant', 'Mant', 'Mant']  # approximate label for each byte
+    # Split the 32-bit IEEE into 8 groups of 4 bits
+    bit_groups = [bits[i:i+4] for i in range(0, 32, 4)]
 
     style = """
     <style>
-    .bitfield { display: flex; justify-content: center; margin: 10px 0; flex-wrap: wrap; }
-    .byte-box { border: 1px solid #555; padding: 10px; margin: 5px; text-align: center; font-family: monospace; font-size: 16px; border-radius: 6px; background-color: #f0f0f0; }
-    .bits { margin-bottom: 5px; }
-    .label { font-size:12px; color:#333; margin-bottom:3px; font-weight:bold; }
-    .hex { font-size:14px; color:#000; font-weight:bold; }
+    .bitfield { display: flex; flex-wrap: wrap; justify-content: center; margin: 10px 0; }
+    .bit-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; color: white; text-align: center; font-weight: bold; }
+    .sign { background-color: #f28b82; }      /* Red */
+    .exp { background-color: #fbbc04; }       /* Orange */
+    .mant { background-color: #34a853; }      /* Green */
+    .hex-label { text-align: center; margin-bottom: 15px; font-weight: bold; font-family: monospace; }
     </style>
     """
 
     html = style + '<div class="bitfield">'
-    for b, h, lbl in zip(bytes_list, hex_list, labels):
-        html += f'<div class="byte-box"><div class="label">{lbl}</div><div class="bits">{b}</div><div class="hex">{h}</div></div>'
+
+    for i, group in enumerate(bit_groups):
+        # Determine color class based on the bits
+        start_bit = i * 4
+        if start_bit == 0:
+            cls = 'sign'  # first 1 bit + next 3 of exponent
+        elif start_bit < 8:
+            cls = 'exp'
+        else:
+            cls = 'mant'
+        html += f'<div class="bit-box {cls}">{group}</div>'
+    
     html += '</div>'
-
-    legend = '<p><b>Byte Labels:</b> Sign+Exponent (byte 0), Exponent/Mantissa (byte 1), Mantissa (bytes 2-3)</p>'
-    html += legend
-
+    html += '<p class="hex-label"><b>Legend:</b> <span style="color:#f28b82;">Sign</span>, <span style="color:#fbbc04;">Exponent</span>, <span style="color:#34a853;">Mantissa</span></p>'
     return html
+
 
 def parse_binary_fraction(value: str) -> float:
     value = value.strip()
