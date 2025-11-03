@@ -4,7 +4,7 @@ from decimal import Decimal, getcontext, InvalidOperation
 
 # ================= Helper Functions =================
 
-def float_to_ieee_bits(value: float) -> (str, str):
+def float_to_ieee_bits(value: float) -> tuple[str, str]:
     packed = struct.pack('>f', value)
     as_int = int.from_bytes(packed, 'big')
     bits = f"{as_int:032b}"
@@ -16,7 +16,7 @@ def ieee_bits_to_float(bits: str) -> float:
     packed = as_int.to_bytes(4, 'big')
     return struct.unpack('>f', packed)[0]
 
-def bits_to_components(bits: str) -> dict:
+def bits_to_components(bits: str) -> dict[str, object]:
     s = bits[0]
     e = bits[1:9]
     m = bits[9:]
@@ -82,7 +82,7 @@ def parse_binary_fraction(value: str) -> float:
     frac_value = sum(int(b)*(2**-(i+1)) for i, b in enumerate(frac_part_str))
     return sign * (int_value + frac_value)
 
-def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
+def decimal_to_ieee_steps(value_str: str) -> tuple[str, str, str]:
     try:
         getcontext().prec = 80
         dec = Decimal(value_str)
@@ -145,7 +145,7 @@ def decimal_to_ieee_steps(value_str: str) -> (str, str, str):
     """
     return bits, hx, html
 
-def parse_hex_input(value: str) -> (str, str, str):
+def parse_hex_input(value: str) -> tuple[str, str, str]:
     v = value.strip().lower()
     if v.startswith('0x'):
         v = v[2:]
