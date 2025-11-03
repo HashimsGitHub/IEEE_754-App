@@ -61,23 +61,29 @@ def create_bitfield_html(bits: str) -> str:
 
     return html
 
-def create_final_boxes_html(bits: str, hx: str) -> str:
-    """Show final 32-bit number in 8 boxes + HEX box"""
+def create_final_boxes_html(bits: str, hx: str, dec_value: float) -> str:
+    """Show final 32-bit number in 8 boxes + HEX + Decimal box"""
     bit_groups = [bits[i:i+4] for i in range(0, 32, 4)]
     
     style = """
     <style>
     .final-field { display: flex; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
     .bit-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; text-align: center; border: 1px solid #555; background-color: #1976D2; color: white; font-weight: bold; }
-    .hex-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; text-align: center; border: 1px solid #555; background-color: #4CAF50; color: white; font-weight: bold; }
+    .hex-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; text-align: center; border: 1px solid #555; background-color: white; color: black; font-weight: bold; }
+    .dec-box { padding: 10px; margin: 3px; border-radius: 4px; font-family: monospace; font-size: 16px; text-align: center; border: 1px solid #555; background-color: white; color: black; font-weight: bold; }
     </style>
     """
     html = style + '<div class="final-field">'
     for grp in bit_groups:
         html += f'<div class="bit-box">{grp}</div>'
     html += '</div>'
-    # HEX box
+    
+    # HEX box (white background, black text)
     html += f'<div class="final-field"><div class="hex-box">{hx}</div></div>'
+    
+    # Decimal box (white background, black text)
+    html += f'<div class="final-field"><div class="dec-box">{dec_value}</div></div>'
+    
     return html
 
 def parse_binary_fraction(value: str) -> float:
@@ -166,7 +172,7 @@ def decimal_to_ieee_steps(value_str: str) -> tuple[str, str, str]:
     """
     return bits, hx, html
 
-def parse_hex_input(value: str) -> tuple[str, str, str]:
+def parse_hex_input(value: str) -> tuple[str, float, str]:
     v = value.strip().lower()
     if v.startswith('0x'):
         v = v[2:]
@@ -175,7 +181,7 @@ def parse_hex_input(value: str) -> tuple[str, str, str]:
 
     as_int = int(v, 16)
     bits = f"{as_int:032b}"
-    hx = f"0x{as_int:08X}"  # <-- Ensure HEX is defined
+    hx = f"0x{as_int:08X}"
     float_val = ieee_bits_to_float(bits)
 
     comps = bits_to_components(bits)
@@ -203,9 +209,10 @@ if st.button('Convert'):
     try:
         if input_type == 'Decimal':
             bits, hx, html = decimal_to_ieee_steps(input_str)
+            dec_value = float(input_str)
         elif input_type == 'Hexadecimal':
-            bits, _, html = parse_hex_input(input_str)
-            hx = f"0x{int(bits, 2):08X}"  # <-- Ensure hx is defined
+            bits, dec_value, html = parse_hex_input(input_str)
+            hx = f"0x{int(bits, 2):08X}"
         else:  # Binary input
             dec_value = parse_binary_fraction(input_str)
             bits, hx, html = decimal_to_ieee_steps(str(dec_value))
@@ -213,7 +220,7 @@ if st.button('Convert'):
 
         st.markdown(html, unsafe_allow_html=True)
         st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-        st.markdown(create_final_boxes_html(bits, hx), unsafe_allow_html=True)
+        st.markdown(create_final_boxes_html(bits, hx, dec_value), unsafe_allow_html=True)
 
     except ValueError as e:
         st.error(str(e))
@@ -221,4 +228,4 @@ if st.button('Convert'):
         st.error(f"Unexpected error: {e}")
 
 st.markdown('---')
-st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with color-coded bitfield and final binary/HEX display.')
+st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with color-coded bitfield and final binary/HEX/Decimal display.')
