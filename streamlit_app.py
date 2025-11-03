@@ -33,7 +33,7 @@ def bits_to_components(bits: str) -> dict[str, object]:
     }
 
 def create_bitfield_html(bits: str) -> str:
-    # Split the 32-bit IEEE into 8 groups of 4 bits
+    # Split 32-bit IEEE into 8 groups of 4 bits
     bit_groups = [bits[i:i+4] for i in range(0, 32, 4)]
 
     style = """
@@ -48,22 +48,18 @@ def create_bitfield_html(bits: str) -> str:
     """
 
     html = style + '<div class="bitfield">'
-
     for i, group in enumerate(bit_groups):
-        # Determine color class based on the bits
         start_bit = i * 4
         if start_bit == 0:
-            cls = 'sign'  # first 1 bit + next 3 of exponent
+            cls = 'sign'  # First bit (Sign) + next 3 bits (Exponent)
         elif start_bit < 8:
             cls = 'exp'
         else:
             cls = 'mant'
         html += f'<div class="bit-box {cls}">{group}</div>'
-    
     html += '</div>'
     html += '<p class="hex-label"><b>Legend:</b> <span style="color:#f28b82;">Sign</span>, <span style="color:#fbbc04;">Exponent</span>, <span style="color:#34a853;">Mantissa</span></p>'
     return html
-
 
 def parse_binary_fraction(value: str) -> float:
     value = value.strip()
@@ -147,8 +143,7 @@ def decimal_to_ieee_steps(value_str: str) -> tuple[str, str, str]:
     <p>Exponent (unbiased): {exponent_unbiased}, Biased: {exponent_biased}</p>
     <p>Exponent bits: {exponent_bits}</p>
     <p>Mantissa bits: {mantissa}</p>
-    <p>Final IEEE bits: {bits}</p>
-    <p>Hex representation: {hx}</p>
+    <p>Final IEEE bits:</p>
     """
     return bits, hx, html
 
@@ -169,7 +164,6 @@ def parse_hex_input(value: str) -> tuple[str, str, str]:
     <p>Sign bit: {comps['sign_bit']}</p>
     <p>Exponent bits: {comps['exponent_bits']} (biased {comps['exponent_biased']}, unbiased {comps['exponent_unbiased']})</p>
     <p>Mantissa bits: {comps['mantissa_bits']}</p>
-    <p>Converted Decimal value: {float_val}</p>
     """
     return bits, f"{float_val}", html
 
@@ -182,7 +176,7 @@ with st.sidebar:
     st.header('Input Type')
     input_type = st.radio('Choose Input Type', ['Decimal', 'Hexadecimal', 'Binary'])
 
-st.markdown('Enter a value below to view its IEEE-754 32-bit conversion steps and byte-level bitfield visualization.')
+st.markdown('Enter a value below to view its IEEE-754 32-bit conversion steps and bitfield visualization.')
 input_str = st.text_input('Input value', value='3.1415926')
 
 if st.button('Convert'):
@@ -190,28 +184,19 @@ if st.button('Convert'):
         if input_type == 'Decimal':
             bits, hx, html = decimal_to_ieee_steps(input_str)
             st.markdown(html, unsafe_allow_html=True)
-            st.subheader('Byte-level Bitfield Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-            st.text_area('IEEE Bits', bits, height=80)
-            st.text_input('Hexadecimal Representation', hx)
 
         elif input_type == 'Hexadecimal':
             bits, dec_value, html = parse_hex_input(input_str)
             st.markdown(html, unsafe_allow_html=True)
-            st.subheader('Byte-level Bitfield Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-            st.text_area('IEEE Bits', bits, height=80)
-            st.text_input('Decimal Representation', dec_value)
 
         else:  # Binary input
             dec_value = parse_binary_fraction(input_str)
             bits, hx, html = decimal_to_ieee_steps(str(dec_value))
             st.markdown(f"<p>Parsed Decimal value from binary input: {dec_value}</p>", unsafe_allow_html=True)
             st.markdown(html, unsafe_allow_html=True)
-            st.subheader('Byte-level Bitfield Visualization')
             st.markdown(create_bitfield_html(bits), unsafe_allow_html=True)
-            st.text_area('IEEE Bits', bits, height=80)
-            st.text_input('Hexadecimal Representation', hx)
 
     except ValueError as e:
         st.error(str(e))
@@ -219,4 +204,4 @@ if st.button('Convert'):
         st.error(f"Unexpected error: {e}")
 
 st.markdown('---')
-st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and byte-level bitfield visualization.')
+st.caption('This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with validation and color-coded bitfield visualization.')
