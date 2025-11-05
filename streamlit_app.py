@@ -195,9 +195,9 @@ def parse_hex_input(value: str) -> tuple[str, float, str]:
 
 # Set default example values depending on input type
 default_values = {
-    'Decimal': '3.1415926',
-    'Hexadecimal': '0x40490FDB',
-    'Binary': '01000000010010010000111111011011'
+    'Decimal': '-54.375',
+    'Hexadecimal': '0xc2598000',
+    'Binary': '11000010010110011000000000000000'
 }
 
 
