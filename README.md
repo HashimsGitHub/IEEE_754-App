@@ -1,19 +1,6 @@
-# 🎈 Blank app template
+# IEEE-754 Converter — 32-bit Floating Point
+This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-754 32-bit floating point format with color-coded bitfield and final binary/HEX/Decimal display.
 
-A simple Streamlit app template for you to modify!
+https://hashim-ieee754-converter.streamlit.app/
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
 
-### How to run it on your own machine
-
-1. Install the requirements
-
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
