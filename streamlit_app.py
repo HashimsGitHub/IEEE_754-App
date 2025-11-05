@@ -193,6 +193,14 @@ def parse_hex_input(value: str) -> tuple[str, float, str]:
     """
     return bits, float_val, html
 
+# Set default example values depending on input type
+default_values = {
+    'Decimal': '3.1415926',
+    'Hexadecimal': '0x40490FDB',
+    'Binary': '01000000010010010000111111011011'
+}
+
+
 # ================= Streamlit App =================
 
 st.set_page_config(page_title='IEEE-754 Converter', layout='wide')
@@ -203,7 +211,8 @@ with st.sidebar:
     input_type = st.radio('Choose Input Type', ['Decimal', 'Hexadecimal', 'Binary'])
 
 st.markdown('Enter a value below to view its IEEE-754 32-bit conversion steps and bitfield visualization.')
-input_str = st.text_input('Input value', value='3.1415926')
+input_str = st.text_input('Input value', value=default_values[input_type])
+
 
 if st.button('Convert'):
     try:
