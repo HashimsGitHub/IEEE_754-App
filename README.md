@@ -4,3 +4,4 @@ This app converts Decimal, Hexadecimal, or Binary (fixed-point) input into IEEE-
 https://hashim-ieee754-converter.streamlit.app/
 
 
+https://qutstuduesmia2025.blob.core.windows.net/mystudies/QuizMaster.mht
